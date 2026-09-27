@@ -52,9 +52,6 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // Async call payment service
-        processPaymentAsync(savedOrder);
-
         return mapToResponse(savedOrder);
     }
 

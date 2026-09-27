@@ -925,7 +925,9 @@
 
         async function placeOrder(e) {
             e.preventDefault();
+            const btn = e.target.querySelector('button');
             try {
+                btn.disabled = true;
                 const body = {
                     items: cartState.items.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity })),
                     shippingAddress: document.getElementById('checkout-address').value,
@@ -941,7 +943,9 @@
                 
                 // Show order details and option to pay if PLACED
                 showPage('orders-page');
-            } catch(e) {}
+            } catch(e) {} finally {
+                btn.disabled = false;
+            }
         }
 
         // === ORDERS ===
