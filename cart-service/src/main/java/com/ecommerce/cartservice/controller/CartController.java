@@ -16,7 +16,7 @@ public class CartController {
 
     private final CartService cartService;
 
-    @GetMapping("/")
+    @GetMapping
     public ApiResponse<CartResponse> getCart(@RequestHeader("X-User-Id") String userId) {
         return ApiResponse.success(cartService.getCart(Long.valueOf(userId)));
     }
@@ -43,7 +43,7 @@ public class CartController {
         return ApiResponse.success("Item removed", cartService.removeCartItem(Long.valueOf(userId), productId));
     }
 
-    @DeleteMapping("/")
+    @DeleteMapping
     public ApiResponse<String> clearCart(@RequestHeader("X-User-Id") String userId) {
         cartService.clearCart(Long.valueOf(userId));
         return ApiResponse.success("Cart cleared", null);
