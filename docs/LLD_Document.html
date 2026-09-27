@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Low-Level Design Document - Ecommerce Microservices</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true, theme:'default'});</script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #e74c3c;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+        }
+        .header-controls {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button:hover { background-color: var(--secondary-color); }
+        .title-page {
+            text-align: center;
+            padding: 100px 0;
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 50px;
+            page-break-after: always;
+        }
+        h1, h2, h3, h4 { color: var(--primary-color); }
+        h1 { font-size: 2.5em; }
+        h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 40px; }
+        .toc-list { list-style: none; padding-left: 0; }
+        .toc-list li { margin-bottom: 10px; }
+        .toc-list a { color: var(--accent-color); text-decoration: none; }
+        .toc-list a:hover { text-decoration: underline; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        th, td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
+        th { background-color: var(--primary-color); color: white; }
+        tr:nth-child(even) { background-color: var(--bg-color); }
+        pre { background-color: #f1f3f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .mermaid { text-align: center; margin: 30px 0; }
+        .mermaid-caption { text-align: center; font-style: italic; color: #666; margin-bottom: 20px; }
+        .page-break { page-break-after: always; }
+        
+        @media print {
+            .header-controls { display: none; }
+            body { padding: 0; margin: 1cm; max-width: 100%; }
+            .title-page { padding: 50px 0; }
+            .mermaid { page-break-inside: avoid; }
+            table { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-controls">
+        <button onclick="window.print()">Print to PDF</button>
+    </div>
+
+    <div class="title-page">
+        <h1>Low-Level Design Document</h1>
+        <h2>Ecommerce Microservices Platform</h2>
+        <p><strong>Date:</strong> 2026-09-27</p>
+        <p><strong>Version:</strong> 1.0</p>
+    </div>
+
+    <div class="page-break">
+        <h2>Table of Contents</h2>
+        <ul class="toc-list">
+            <li><a href="#intro">1. Introduction</a></li>
+            <li><a href="#class-diagrams">2. Class Diagrams (UML)</a></li>
+            <li><a href="#er-diagrams">3. Entity-Relationship Diagrams</a></li>
+            <li><a href="#sequence-diagrams">4. Sequence Diagrams (Detailed)</a></li>
+            <li><a href="#api-specs">5. API Specifications</a></li>
+            <li><a href="#db-schema">6. Database Schema Details</a></li>
+            <li><a href="#design-patterns">7. Design Patterns Used</a></li>
+        </ul>
+    </div>
+
+    <h2 id="intro">1. Introduction</h2>
+    <p>This document provides the Low-Level Design (LLD) detailing the internal structure, algorithms, class structures, database schemas, and API specifications for each component within the Ecommerce Microservices platform.</p>
+
+    <h2 id="class-diagrams">2. Class Diagrams (UML)</h2>
+
+    <h3>2.1 User Service</h3>
+    <div class="mermaid">
+    classDiagram
+        class User {
+            +Long id
+            +String email
+            +String password
+            +String firstName
+            +String lastName
+            +String phone
+            +String role
+            +LocalDateTime createdAt
+            +LocalDateTime updatedAt
+        }
+        class UserRepository {
+            +findByEmail(String) Optional~User~
+            +existsByEmail(String) boolean
+        }
+        class UserService {
+            +register(RegisterRequest) LoginResponse
+            +login(LoginRequest) LoginResponse
+            +getProfile(Long) UserProfileDto
+            +updateProfile(Long, UpdateProfileRequest) UserProfileDto
+            +resetPassword(PasswordResetRequest) void
+        }
+        class JwtService {
+            +generateToken(User) String
+            +validateToken(String) Claims
+        }
+        class AuthController {
+            +register(RegisterRequest) ApiResponse
+            +login(LoginRequest) ApiResponse
+            +resetPassword(PasswordResetRequest) ApiResponse
+        }
+        class UserController {
+            +getProfile(String) ApiResponse
+            +updateProfile(String, UpdateProfileRequest) ApiResponse
+        }
+        AuthController --> UserService
+        UserController --> UserService
+        UserService --> UserRepository
+        UserService --> JwtService
+        UserRepository --> User
+    </div>
+
+    <h3>2.2 Product Service</h3>
+    <div class="mermaid">
+    classDiagram
+        class Product {
+            +Long id
+            +String name
+            +String description
+            +BigDecimal price
+            +Integer stockQuantity
+            +String category
+            +String imageUrl
+        }
+        class ProductRepository {
+            +findByCategory(String) List~Product~
+            +findByNameContaining(String) List~Product~
+        }
+        class ProductService {
+            +createProduct(ProductDto) ProductDto
+            +updateProduct(Long, ProductDto) ProductDto
+            +getProduct(Long) ProductDto
+            +searchProducts(String) List~ProductDto~
+            +reduceStock(Long, Integer) void
+        }
+        class ProductController {
+            +getProduct(Long) ApiResponse
+            +search(String) ApiResponse
+            +create(ProductDto) ApiResponse
+            +update(Long, ProductDto) ApiResponse
+        }
+        ProductController --> ProductService
+        ProductService --> ProductRepository
+        ProductRepository --> Product
+    </div>
+
+    <h3>2.3 Cart Service</h3>
+    <div class="mermaid">
+    classDiagram
+        class Cart {
+            +Long id
+            +Long userId
+            +List~CartItem~ items
+            +BigDecimal totalPrice
+        }
+        class CartItem {
+            +Long id
+            +Long productId
+            +String productName
+            +Integer quantity
+            +BigDecimal price
+        }
+        class CartRepository {
+            +findByUserId(Long) Optional~Cart~
+        }
+        class CartService {
+            +getCart(Long) CartDto
+            +addItem(Long, CartItemRequest) CartDto
+            +removeItem(Long, Long) CartDto
+            +clearCart(Long) void
+        }
+        class CartController {
+            +getCart(String) ApiResponse
+            +addItem(String, CartItemRequest) ApiResponse
+            +removeItem(String, Long) ApiResponse
+        }
+        CartController --> CartService
+        CartService --> CartRepository
+        CartRepository --> Cart
+        Cart --> CartItem
+    </div>
+
+    <h3>2.4 Order Service</h3>
+    <div class="mermaid">
+    classDiagram
+        class Order {
+            +Long id
+            +Long userId
+            +List~OrderItem~ items
+            +BigDecimal totalAmount
+            +OrderStatus status
+            +String shippingAddress
+        }
+        class OrderItem {
+            +Long id
+            +Long productId
+            +Integer quantity
+            +BigDecimal price
+        }
+        class OrderStatus {
+            <<enumeration>>
+            PENDING
+            PAID
+            SHIPPED
+            DELIVERED
+            CANCELLED
+        }
+        class OrderRepository {
+            +findByUserId(Long) List~Order~
+        }
+        class OrderService {
+            +createOrder(Long, OrderRequest) OrderDto
+            +getOrder(Long) OrderDto
+            +updateStatus(Long, OrderStatus) OrderDto
+        }
+        class OrderController {
+            +createOrder(String, OrderRequest) ApiResponse
+            +getOrder(Long) ApiResponse
+            +updateStatus(Long, OrderStatus) ApiResponse
+        }
+        OrderController --> OrderService
+        OrderService --> OrderRepository
+        OrderRepository --> Order
+        Order --> OrderItem
+        Order --> OrderStatus
+    </div>
+
+    <h3>2.5 Payment Service</h3>
+    <div class="mermaid">
+    classDiagram
+        class Payment {
+            +Long id
+            +Long orderId
+            +Long userId
+            +BigDecimal amount
+            +PaymentMethod method
+            +PaymentStatus status
+            +String transactionId
+        }
+        class PaymentStatus {
+            <<enumeration>>
+            PENDING
+            SUCCESS
+            FAILED
+        }
+        class PaymentMethod {
+            <<enumeration>>
+            CREDIT_CARD
+            PAYPAL
+            UPI
+        }
+        class PaymentRepository {
+            +findByOrderId(Long) Optional~Payment~
+        }
+        class PaymentService {
+            +processPayment(PaymentRequest) PaymentDto
+            +getPaymentDetails(Long) PaymentDto
+        }
+        class PaymentController {
+            +processPayment(String, PaymentRequest) ApiResponse
+            +getPayment(Long) ApiResponse
+        }
+        PaymentController --> PaymentService
+        PaymentService --> PaymentRepository
+        PaymentRepository --> Payment
+        Payment --> PaymentStatus
+        Payment --> PaymentMethod
+    </div>
+
+    <h3>2.6 Notification Service</h3>
+    <div class="mermaid">
+    classDiagram
+        class Notification {
+            +Long id
+            +Long userId
+            +String recipientEmail
+            +String subject
+            +String body
+            +NotificationType type
+            +NotificationStatus status
+        }
+        class NotificationType {
+            <<enumeration>>
+            WELCOME_EMAIL
+            ORDER_CONFIRMATION
+            PAYMENT_RECEIPT
+        }
+        class NotificationStatus {
+            <<enumeration>>
+            PENDING
+            SENT
+            FAILED
+        }
+        class NotificationRepository {
+            +findByUserId(Long) List~Notification~
+        }
+        class NotificationService {
+            +sendNotification(NotificationRequest) void
+        }
+        class EmailService {
+            +sendEmail(String, String, String) boolean
+        }
+        class NotificationController {
+            +send(NotificationRequest) ApiResponse
+        }
+        NotificationController --> NotificationService
+        NotificationService --> NotificationRepository
+        NotificationService --> EmailService
+        NotificationRepository --> Notification
+    </div>
+
+    <h2 id="er-diagrams">3. Entity-Relationship Diagrams</h2>
+    
+    <h3>3.1 user_db</h3>
+    <div class="mermaid">
+    erDiagram
+        USERS {
+            bigint id PK
+            varchar email UK
+            varchar password
+            varchar first_name
+            varchar last_name
+            varchar phone
+            varchar role
+            datetime created_at
+            datetime updated_at
+        }
+    </div>
+
+    <h3>3.2 product_db</h3>
+    <div class="mermaid">
+    erDiagram
+        PRODUCTS {
+            bigint id PK
+            varchar name
+            text description
+            decimal price
+            int stock_quantity
+            varchar category
+            varchar image_url
+            datetime created_at
+        }
+    </div>
+
+    <h3>3.3 cart_db</h3>
+    <div class="mermaid">
+    erDiagram
+        CARTS {
+            bigint id PK
+            bigint user_id UK
+            decimal total_price
+            datetime created_at
+            datetime updated_at
+        }
+        CART_ITEMS {
+            bigint id PK
+            bigint cart_id FK
+            bigint product_id
+            varchar product_name
+            int quantity
+            decimal price
+        }
+        CARTS ||--o{ CART_ITEMS : contains
+    </div>
+
+    <h3>3.4 order_db</h3>
+    <div class="mermaid">
+    erDiagram
+        ORDERS {
+            bigint id PK
+            bigint user_id
+            decimal total_amount
+            varchar status
+            varchar shipping_address
+            datetime created_at
+        }
+        ORDER_ITEMS {
+            bigint id PK
+            bigint order_id FK
+            bigint product_id
+            int quantity
+            decimal price
+        }
+        ORDERS ||--o{ ORDER_ITEMS : includes
+    </div>
+
+    <h3>3.5 payment_db</h3>
+    <div class="mermaid">
+    erDiagram
+        PAYMENTS {
+            bigint id PK
+            bigint order_id
+            bigint user_id
+            decimal amount
+            varchar method
+            varchar status
+            varchar transaction_id
+            datetime timestamp
+        }
+    </div>
+
+    <h3>3.6 notification_db</h3>
+    <div class="mermaid">
+    erDiagram
+        NOTIFICATIONS {
+            bigint id PK
+            bigint user_id
+            varchar recipient_email
+            varchar subject
+            text body
+            varchar type
+            varchar status
+            datetime sent_at
+        }
+    </div>
+
+    <h2 id="sequence-diagrams">4. Sequence Diagrams (Detailed)</h2>
+
+    <h3>4.1 User Registration Flow</h3>
+    <div class="mermaid">
+    sequenceDiagram
+        participant C as Client
+        participant GC as AuthController
+        participant US as UserService
+        participant UR as UserRepository
+        participant NS as NotificationService
+
+        C->>GC: POST /api/v1/auth/register (RegisterRequest)
+        GC->>US: register(request)
+        US->>UR: existsByEmail(email)
+        UR-->>US: false
+        US->>US: encodePassword()
+        US->>UR: save(User)
+        UR-->>US: savedUser
+        US-->>GC: UserDto
+        US->>NS: send(WELCOME_EMAIL) Async
+        GC-->>C: 201 Created (ApiResponse)
+    </div>
+
+    <h3>4.2 User Login Flow</h3>
+    <div class="mermaid">
+    sequenceDiagram
+        participant C as Client
+        participant GC as AuthController
+        participant US as UserService
+        participant UR as UserRepository
+        participant JWT as JwtService
+
+        C->>GC: POST /api/v1/auth/login
+        GC->>US: login(request)
+        US->>UR: findByEmail(email)
+        UR-->>US: User
+        US->>US: checkPassword()
+        US->>JWT: generateToken(User)
+        JWT-->>US: "jwt.token.string"
+        US-->>GC: LoginResponse(token)
+        GC-->>C: 200 OK (token)
+    </div>
+
+    <h3>4.4 Add to Cart Flow</h3>
+    <div class="mermaid">
+    sequenceDiagram
+        participant C as Client
+        participant API as Gateway
+        participant CC as CartController
+        participant CS as CartService
+        participant PS as ProductService (REST)
+        participant CR as CartRepository
+
+        C->>API: POST /api/v1/cart/items (Token)
+        API->>CC: X-User-Id=123
+        CC->>CS: addItem(123, request)
+        CS->>PS: GET /api/v1/products/{id}
+        PS-->>CS: Product details (price, stock)
+        CS->>CS: validate stock >= request.quantity
+        CS->>CR: findByUserId(123)
+        CR-->>CS: Cart Entity
+        CS->>CS: update items & total_price
+        CS->>CR: save(Cart)
+        CR-->>CS: updatedCart
+        CS-->>CC: CartDto
+        CC-->>C: 200 OK (CartDto)
+    </div>
+
+    <h3>4.5 Complete Purchase Flow</h3>
+    <div class="mermaid">
+    sequenceDiagram
+        participant C as Client
+        participant OS as OrderService
+        participant PS as PaymentService
+        participant NS as NotificationService
+
+        C->>OS: POST /orders
+        OS->>OS: calculate total
+        OS->>OS: save Order(PENDING)
+        OS-->>C: Order Created (ID)
+
+        C->>PS: POST /payments (OrderID, Details)
+        PS->>PS: Validate Payment
+        PS->>PS: save Payment(SUCCESS)
+        PS->>OS: PUT /orders/{id}/status (PAID)
+        OS->>OS: update Order
+        OS-->>PS: Status Updated
+        PS->>NS: POST /notifications (Receipt)
+        PS-->>C: Payment Success
+    </div>
+
+    <h2 id="api-specs">5. API Specifications</h2>
+    
+    <h3>User Service</h3>
+    <table>
+        <tr><th>Method</th><th>Path</th><th>Req Body</th><th>Res Body</th><th>Auth</th><th>Description</th></tr>
+        <tr><td>POST</td><td>/api/v1/auth/register</td><td>RegisterRequest</td><td>ApiResponse</td><td>No</td><td>Register a new user</td></tr>
+        <tr><td>POST</td><td>/api/v1/auth/login</td><td>LoginRequest</td><td>ApiResponse</td><td>No</td><td>Authenticate user</td></tr>
+        <tr><td>GET</td><td>/api/v1/users/me</td><td>-</td><td>ApiResponse</td><td>Yes</td><td>Get profile using X-User-Id</td></tr>
+    </table>
+
+    <h3>Product Service</h3>
+    <table>
+        <tr><th>Method</th><th>Path</th><th>Req Body</th><th>Res Body</th><th>Auth</th><th>Description</th></tr>
+        <tr><td>GET</td><td>/api/v1/products</td><td>-</td><td>ApiResponse</td><td>No</td><td>List products</td></tr>
+        <tr><td>GET</td><td>/api/v1/products/search</td><td>-</td><td>ApiResponse</td><td>No</td><td>Search products</td></tr>
+        <tr><td>POST</td><td>/api/v1/products</td><td>ProductDto</td><td>ApiResponse</td><td>Yes (Admin)</td><td>Create product</td></tr>
+    </table>
+
+    <h3>Cart Service</h3>
+    <table>
+        <tr><th>Method</th><th>Path</th><th>Req Body</th><th>Res Body</th><th>Auth</th><th>Description</th></tr>
+        <tr><td>GET</td><td>/api/v1/cart</td><td>-</td><td>ApiResponse</td><td>Yes</td><td>Get user cart</td></tr>
+        <tr><td>POST</td><td>/api/v1/cart/items</td><td>CartItemReq</td><td>ApiResponse</td><td>Yes</td><td>Add item</td></tr>
+        <tr><td>DELETE</td><td>/api/v1/cart/items/{id}</td><td>-</td><td>ApiResponse</td><td>Yes</td><td>Remove item</td></tr>
+    </table>
+
+    <h2 id="db-schema">6. Database Schema Details</h2>
+    <p>Detailed in the ER Diagrams section. Standard types used: BIGINT for IDs, VARCHAR for strings, DECIMAL(10,2) for currency, DATETIME for timestamps.</p>
+
+    <h2 id="design-patterns">7. Design Patterns Used</h2>
+    <ul>
+        <li><strong>API Gateway Pattern:</strong> Spring Cloud Gateway acts as a single entry point, abstracting internal microservices and handling cross-cutting concerns like JWT validation.</li>
+        <li><strong>Database per Service:</strong> Ensures services are decoupled. User service has <code>user_db</code>, Product has <code>product_db</code>, etc.</li>
+        <li><strong>Data Transfer Object (DTO):</strong> Ensures internal domain models (Entities) are not exposed directly to API clients.</li>
+        <li><strong>Repository Pattern:</strong> Spring Data JPA abstracts data layer access.</li>
+        <li><strong>Builder Pattern:</strong> Used heavily via Lombok's <code>@Builder</code> for constructing complex request/response objects and entities safely.</li>
+    </ul>
+
+</body>
+</html>

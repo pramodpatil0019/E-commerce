@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Level Design Document - Ecommerce Microservices</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true, theme:'default'});</script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+        }
+        .header-controls {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button:hover { background-color: var(--secondary-color); }
+        .title-page {
+            text-align: center;
+            padding: 100px 0;
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 50px;
+            page-break-after: always;
+        }
+        h1, h2, h3, h4 { color: var(--primary-color); }
+        h1 { font-size: 2.5em; }
+        h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 40px; }
+        .toc-list { list-style: none; padding-left: 0; }
+        .toc-list li { margin-bottom: 10px; }
+        .toc-list a { color: var(--accent-color); text-decoration: none; }
+        .toc-list a:hover { text-decoration: underline; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        th, td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
+        th { background-color: var(--primary-color); color: white; }
+        tr:nth-child(even) { background-color: var(--bg-color); }
+        pre { background-color: #f1f3f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .mermaid { text-align: center; margin: 30px 0; }
+        .mermaid-caption { text-align: center; font-style: italic; color: #666; margin-bottom: 20px; }
+        .page-break { page-break-after: always; }
+        
+        @media print {
+            .header-controls { display: none; }
+            body { padding: 0; margin: 1cm; max-width: 100%; }
+            .title-page { padding: 50px 0; }
+            .mermaid { page-break-inside: avoid; }
+            table { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-controls">
+        <button onclick="window.print()">Print to PDF</button>
+    </div>
+
+    <div class="title-page">
+        <h1>High-Level Design Document</h1>
+        <h2>Ecommerce Microservices Platform</h2>
+        <p><strong>Date:</strong> 2026-09-27</p>
+        <p><strong>Version:</strong> 1.0</p>
+    </div>
+
+    <div class="page-break">
+        <h2>Table of Contents</h2>
+        <ul class="toc-list">
+            <li><a href="#intro">1. Introduction</a></li>
+            <li><a href="#architecture">2. Architecture Overview</a></li>
+            <li><a href="#components">3. Component Diagram</a></li>
+            <li><a href="#tech-stack">4. Technology Stack</a></li>
+            <li><a href="#services">5. Service Descriptions</a></li>
+            <li><a href="#data-flow">6. Data Flow Diagrams</a></li>
+            <li><a href="#api-gateway">7. API Gateway Routing</a></li>
+            <li><a href="#security">8. Security Architecture</a></li>
+            <li><a href="#caching">9. Caching Strategy</a></li>
+            <li><a href="#deployment">10. Deployment Architecture</a></li>
+        </ul>
+    </div>
+
+    <h2 id="intro">1. Introduction</h2>
+    <p><strong>Purpose:</strong> The purpose of this document is to provide a High-Level Design (HLD) for the Ecommerce Microservices Platform. It defines the overall architecture, system components, data flows, and interactions between microservices.</p>
+    <p><strong>Scope:</strong> This covers the core backend services required for a full-scale ecommerce platform, including User management, Product catalog, Cart operations, Order processing, Payments, and Notifications.</p>
+    <p><strong>System Overview:</strong> The system is composed of 8 distinct services communicating via REST over an API Gateway. The platform follows the database-per-service pattern, utilizes service discovery for dynamic scaling, and implements centralized JWT authentication.</p>
+
+    <h2 id="architecture">2. Architecture Overview</h2>
+    <p>The system leverages a microservices architecture pattern utilizing Spring Cloud for robust discovery and routing.</p>
+    <ul>
+        <li><strong>Database per Service:</strong> Ensures loose coupling and independent scaling.</li>
+        <li><strong>API Gateway Pattern:</strong> Single entry point routing requests and handling authentication.</li>
+        <li><strong>Service Discovery:</strong> Eureka server enables services to find each other dynamically.</li>
+    </ul>
+
+    <div class="mermaid">
+    flowchart TD
+        Client([Client Applications])
+        Gateway[API Gateway :8080]
+        Eureka((Eureka Server :8761))
+
+        UserSvc[User Service :8081]
+        ProdSvc[Product Service :8082]
+        CartSvc[Cart Service :8083]
+        OrderSvc[Order Service :8084]
+        PaySvc[Payment Service :8085]
+        NotifSvc[Notification Service :8086]
+
+        UserDB[(user_db)]
+        ProdDB[(product_db)]
+        CartDB[(cart_db)]
+        OrderDB[(order_db)]
+        PayDB[(payment_db)]
+        NotifDB[(notification_db)]
+        Cache[(Caffeine Cache)]
+
+        Client -->|REST| Gateway
+        Gateway -.-|Registers/Discovers| Eureka
+        
+        Gateway --> UserSvc
+        Gateway --> ProdSvc
+        Gateway --> CartSvc
+        Gateway --> OrderSvc
+        Gateway --> PaySvc
+        Gateway --> NotifSvc
+
+        UserSvc --> UserDB
+        ProdSvc --> ProdDB
+        CartSvc --> CartDB
+        CartSvc -.-> Cache
+        OrderSvc --> OrderDB
+        PaySvc --> PayDB
+        NotifSvc --> NotifDB
+
+        OrderSvc <-->|REST Sync| PaySvc
+        OrderSvc -->|REST Async| NotifSvc
+        UserSvc -->|REST Async| NotifSvc
+        PaySvc -->|REST Async| NotifSvc
+    </div>
+    <div class="mermaid-caption">Figure 1: High-Level System Architecture Diagram</div>
+
+    <h2 id="components">3. Component Diagram</h2>
+    <div class="mermaid">
+    flowchart TB
+        subgraph Presentation Layer
+            Client[Web / Mobile Clients]
+        end
+
+        subgraph Gateway Layer
+            APIG[API Gateway]
+        end
+
+        subgraph Discovery Layer
+            ER[Eureka Registry]
+        end
+
+        subgraph Service Layer
+            US[User Service]
+            PS[Product Service]
+            CS[Cart Service]
+            OS[Order Service]
+            PYS[Payment Service]
+            NS[Notification Service]
+        end
+
+        subgraph Data Layer
+            UDB[(MySQL User)]
+            PDB[(MySQL Product)]
+            CDB[(MySQL Cart)]
+            ODB[(MySQL Order)]
+            PYDB[(MySQL Payment)]
+            NDB[(MySQL Notification)]
+            CA[(Caffeine Cache)]
+        end
+
+        Client --> APIG
+        APIG --> US & PS & CS & OS & PYS & NS
+        US & PS & CS & OS & PYS & NS -.-> ER
+        US --> UDB
+        PS --> PDB
+        CS --> CDB
+        CS --> CA
+        OS --> ODB
+        PYS --> PYDB
+        NS --> NDB
+    </div>
+    <div class="mermaid-caption">Figure 2: System Components Grouped by Layer</div>
+
+    <h2 id="tech-stack">4. Technology Stack</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Layer</th>
+                <th>Technology</th>
+                <th>Version</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Backend Services</td><td>Java / Spring Boot</td><td>17 / 3.3.13</td><td>Core application framework</td></tr>
+            <tr><td>Service Discovery</td><td>Spring Cloud Netflix Eureka</td><td>2023.0.6</td><td>Dynamic service registry and discovery</td></tr>
+            <tr><td>API Gateway</td><td>Spring Cloud Gateway</td><td>2023.0.6</td><td>Routing, Auth, Rate Limiting</td></tr>
+            <tr><td>Databases</td><td>MySQL</td><td>8.0+</td><td>Persistent relational data storage</td></tr>
+            <tr><td>Caching</td><td>Caffeine Cache</td><td>3.x</td><td>In-memory local caching for Cart service</td></tr>
+            <tr><td>Security</td><td>JSON Web Tokens (JWT)</td><td>-</td><td>Stateless Authentication and Authorization</td></tr>
+        </tbody>
+    </table>
+
+    <h2 id="services">5. Service Descriptions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Service Name</th>
+                <th>Port</th>
+                <th>Database</th>
+                <th>Key Responsibilities</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Eureka Server</td>
+                <td>8761</td>
+                <td>None</td>
+                <td>Service registry, heartbeats, service lookup</td>
+            </tr>
+            <tr>
+                <td>API Gateway</td>
+                <td>8080</td>
+                <td>None</td>
+                <td>Reverse proxy, JWT token validation, request routing</td>
+            </tr>
+            <tr>
+                <td>User Service</td>
+                <td>8081</td>
+                <td>user_db</td>
+                <td>Authentication, Registration, Profile Management</td>
+            </tr>
+            <tr>
+                <td>Product Service</td>
+                <td>8082</td>
+                <td>product_db</td>
+                <td>Catalog management, search, inventory tracking</td>
+            </tr>
+            <tr>
+                <td>Cart Service</td>
+                <td>8083</td>
+                <td>cart_db</td>
+                <td>Temporary holding of items, price calculation, caching</td>
+            </tr>
+            <tr>
+                <td>Order Service</td>
+                <td>8084</td>
+                <td>order_db</td>
+                <td>Order lifecycle management, final calculations</td>
+            </tr>
+            <tr>
+                <td>Payment Service</td>
+                <td>8085</td>
+                <td>payment_db</td>
+                <td>Transaction processing, payment state tracking</td>
+            </tr>
+            <tr>
+                <td>Notification Service</td>
+                <td>8086</td>
+                <td>notification_db</td>
+                <td>Sending Emails/SMS for orders, welcome messages</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="data-flow">6. Data Flow Diagrams</h2>
+    
+    <h3>User Registration Flow</h3>
+    <div class="mermaid">
+    sequenceDiagram
+        actor Client
+        participant Gateway as API Gateway
+        participant UserService
+        participant MySQL as user_db
+        participant NotifService as NotificationService
+        participant Console as Console (Email)
+
+        Client->>Gateway: POST /api/v1/auth/register
+        Gateway->>UserService: Forward Request
+        UserService->>MySQL: Save User details
+        MySQL-->>UserService: User Saved
+        UserService->>NotifService: POST /api/v1/notifications/send (Welcome)
+        NotifService->>Console: Print Welcome Email
+        UserService-->>Gateway: 201 Created (Success)
+        Gateway-->>Client: Response
+    </div>
+
+    <h3>Product Search Flow</h3>
+    <div class="mermaid">
+    sequenceDiagram
+        actor Client
+        participant Gateway as API Gateway
+        participant ProductService
+        participant MySQL as product_db
+
+        Client->>Gateway: GET /api/v1/products/search?query=xyz
+        Gateway->>ProductService: Forward Request
+        ProductService->>MySQL: SELECT * FROM products WHERE MATCH(...)
+        MySQL-->>ProductService: ResultSet
+        ProductService-->>Gateway: List of Products
+        Gateway-->>Client: JSON Response
+    </div>
+
+    <h3>Complete Order & Payment Flow</h3>
+    <div class="mermaid">
+    sequenceDiagram
+        actor Client
+        participant Gateway as API Gateway
+        participant OrderService
+        participant PaymentService
+        participant NotifService as NotificationService
+        participant ODB as order_db
+        participant PDB as payment_db
+
+        Client->>Gateway: POST /api/v1/orders (Create Order)
+        Gateway->>OrderService: Create Order
+        OrderService->>ODB: Save Order (PENDING)
+        OrderService-->>Gateway: Order ID & Amount
+        Gateway-->>Client: Order Created
+
+        Client->>Gateway: POST /api/v1/payments (Pay Order)
+        Gateway->>PaymentService: Process Payment
+        PaymentService->>PDB: Save Payment (SUCCESS)
+        PaymentService->>OrderService: PUT /api/v1/orders/{id}/status (PAID)
+        OrderService->>ODB: Update Order Status
+        PaymentService->>NotifService: POST /api/v1/notifications (Receipt)
+        PaymentService-->>Gateway: Payment Confirmation
+        Gateway-->>Client: Payment Success
+    </div>
+
+    <h2 id="api-gateway">7. API Gateway Routing</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Route Path</th>
+                <th>Target Service</th>
+                <th>Authentication Required</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>/api/v1/auth/**</td><td>User Service (lb://USER-SERVICE)</td><td>No</td></tr>
+            <tr><td>/api/v1/users/**</td><td>User Service (lb://USER-SERVICE)</td><td>Yes</td></tr>
+            <tr><td>/api/v1/products/**</td><td>Product Service (lb://PRODUCT-SERVICE)</td><td>Optional (Yes for modification)</td></tr>
+            <tr><td>/api/v1/cart/**</td><td>Cart Service (lb://CART-SERVICE)</td><td>Yes</td></tr>
+            <tr><td>/api/v1/orders/**</td><td>Order Service (lb://ORDER-SERVICE)</td><td>Yes</td></tr>
+            <tr><td>/api/v1/payments/**</td><td>Payment Service (lb://PAYMENT-SERVICE)</td><td>Yes</td></tr>
+            <tr><td>/api/v1/notifications/**</td><td>Notification Service (lb://NOTIFICATION-SERVICE)</td><td>Yes (Internal)</td></tr>
+        </tbody>
+    </table>
+
+    <h2 id="security">8. Security Architecture</h2>
+    <p>Authentication is centralized at the API Gateway using JWT. Microservices trust the Gateway and use injected HTTP headers for user context.</p>
+    <div class="mermaid">
+    sequenceDiagram
+        actor Client
+        participant Gateway as API Gateway
+        participant UserService
+        participant CartService
+
+        Note over Client,UserService: 1. Authentication
+        Client->>Gateway: POST /auth/login (Credentials)
+        Gateway->>UserService: Forward request
+        UserService->>UserService: Validate Credentials
+        UserService->>UserService: Generate JWT Token
+        UserService-->>Client: Return JWT Token
+
+        Note over Client,CartService: 2. Authenticated Request
+        Client->>Gateway: GET /cart (Header: Authorization Bearer [Token])
+        Gateway->>Gateway: Validate Token Signature & Expiry
+        Gateway->>Gateway: Extract userId, userEmail, userRole
+        Gateway->>CartService: GET /cart (Headers: X-User-Id, X-User-Email, X-User-Role)
+        CartService->>CartService: Process Request using X-User-Id
+        CartService-->>Client: Cart Details
+    </div>
+
+    <h2 id="caching">9. Caching Strategy</h2>
+    <p>The Cart Service implements in-memory caching using <strong>Caffeine Cache</strong> to reduce database load for frequent cart reads.</p>
+    <ul>
+        <li><code>@Cacheable(value = "carts", key = "#userId")</code>: Applied to <code>getCartByUserId()</code> to serve data from memory if present.</li>
+        <li><code>@CacheEvict(value = "carts", key = "#userId")</code>: Applied to <code>addToCart()</code>, <code>removeFromCart()</code>, and <code>clearCart()</code> to invalidate the cache upon modifications.</li>
+    </ul>
+
+    <h2 id="deployment">10. Deployment Architecture</h2>
+    <div class="mermaid">
+    flowchart LR
+        subgraph Startup Sequence 1
+            ES[Eureka Server :8761]
+        end
+        subgraph Startup Sequence 2
+            MS[MySQL Servers :3306]
+        end
+        subgraph Startup Sequence 3
+            US[User :8081]
+            PS[Product :8082]
+            CS[Cart :8083]
+            OS[Order :8084]
+            PYS[Payment :8085]
+            NS[Notification :8086]
+        end
+        subgraph Startup Sequence 4
+            AG[API Gateway :8080]
+        end
+
+        ES --> MS
+        MS --> US & PS & CS & OS & PYS & NS
+        US & PS & CS & OS & PYS & NS --> AG
+    </div>
+
+</body>
+</html>

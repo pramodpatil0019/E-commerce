@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Shop - Microservices E-Commerce Platform</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .product-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .product-img-placeholder { height: 200px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; color: #adb5bd; font-size: 3rem; }
+        .hero-section { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); color: white; padding: 4rem 0; margin-bottom: 2rem; border-radius: 0.5rem; }
+        #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1060; }
+        .cursor-pointer { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand cursor-pointer" onclick="showPage('products-page')"><i class="fa-solid fa-bag-shopping me-2"></i>E-Shop</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto d-none" id="nav-links">
+                    <li class="nav-item">
+                        <a class="nav-link cursor-pointer" id="nav-products" onclick="showPage('products-page')">Products</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link cursor-pointer" id="nav-cart" onclick="showPage('cart-page')">
+                            Cart <span class="badge bg-danger rounded-pill" id="cart-count">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link cursor-pointer" id="nav-orders" onclick="showPage('orders-page')">Orders</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link cursor-pointer" id="nav-profile" onclick="showPage('profile-page')">Profile</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <div id="auth-nav-buttons">
+                        <button class="btn btn-outline-light me-2" onclick="showPage('auth-page'); showAuthTab('login')">Login</button>
+                        <button class="btn btn-primary" onclick="showPage('auth-page'); showAuthTab('register')">Register</button>
+                    </div>
+                    <div id="user-nav-info" class="d-none text-white">
+                        <span class="me-3" id="nav-user-name"></span>
+                        <button class="btn btn-sm btn-outline-danger" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container my-4">
+        
+        <!-- Auth Page -->
+        <div id="auth-page" class="page-content">
+            <div class="row justify-content-center">
+                <div class="col-md-6 col-lg-5">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white p-0">
+                            <ul class="nav nav-tabs nav-fill" id="authTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active py-3" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane" type="button" role="tab">Login</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link py-3" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-pane" type="button" role="tab">Register</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="tab-content" id="authTabsContent">
+                                <!-- Login Form -->
+                                <div class="tab-pane fade show active" id="login-pane" role="tabpanel">
+                                    <form id="login-form" onsubmit="handleLogin(event)">
+                                        <div class="mb-3">
+                                            <label class="form-label">Email address</label>
+                                            <input type="email" class="form-control" id="login-email" required>
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label">Password</label>
+                                            <input type="password" class="form-control" id="login-password" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100 py-2">
+                                            <span class="spinner-border spinner-border-sm d-none" id="login-spinner"></span> Login
+                                        </button>
+                                    </form>
+                                </div>
+                                <!-- Register Form -->
+                                <div class="tab-pane fade" id="register-pane" role="tabpanel">
+                                    <form id="register-form" onsubmit="handleRegister(event)">
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label">First Name</label>
+                                                <input type="text" class="form-control" id="reg-firstname" required>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label">Last Name</label>
+                                                <input type="text" class="form-control" id="reg-lastname" required>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Phone</label>
+                                            <input type="tel" class="form-control" id="reg-phone" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Email address</label>
+                                            <input type="email" class="form-control" id="reg-email" required>
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label">Password</label>
+                                            <input type="password" class="form-control" id="reg-password" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100 py-2">
+                                            <span class="spinner-border spinner-border-sm d-none" id="reg-spinner"></span> Register
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Page -->
+        <div id="products-page" class="page-content d-none">
+            <div class="hero-section text-center shadow-sm">
+                <h1 class="display-4 fw-bold">Welcome to E-Shop</h1>
+                <p class="lead">Discover the best products at unbeatable prices.</p>
+            </div>
+            
+            <div class="row mb-4 align-items-center">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <form class="d-flex" onsubmit="handleSearch(event)">
+                        <input class="form-control me-2" type="search" placeholder="Search products..." id="search-input">
+                        <button class="btn btn-outline-primary" type="submit"><i class="fa-solid fa-search"></i></button>
+                    </form>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="dropdown d-inline-block d-md-none w-100">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                            Filter Category
+                        </button>
+                        <ul class="dropdown-menu w-100" id="category-dropdown">
+                            <!-- Populated dynamically -->
+                        </ul>
+                    </div>
+                    <div class="btn-group d-none d-md-inline-flex" role="group" id="category-pills">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center d-none my-5" id="products-loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+
+            <div class="row g-4" id="products-grid">
+                <!-- Products will be injected here -->
+            </div>
+        </div>
+
+        <!-- Cart Page -->
+        <div id="cart-page" class="page-content d-none">
+            <h2 class="mb-4"><i class="fa-solid fa-shopping-cart me-2"></i>Your Cart</h2>
+            
+            <div class="text-center d-none my-5" id="cart-loading">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+
+            <div id="cart-content">
+                <div class="card shadow-sm mb-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th class="text-center">Quantity</th>
+                                    <th>Subtotal</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-items-body">
+                                <!-- Cart items -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="row justify-content-between align-items-center">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <button class="btn btn-outline-danger" onclick="clearCart()"><i class="fa-solid fa-trash me-2"></i>Clear Cart</button>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <h4 class="mb-3">Total: <span id="cart-total-price" class="fw-bold text-primary">₹0.00</span></h4>
+                        <button class="btn btn-success btn-lg px-5" onclick="openCheckoutModal()">Proceed to Checkout</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="cart-empty" class="text-center py-5 d-none">
+                <i class="fa-solid fa-basket-shopping text-muted mb-3" style="font-size: 4rem;"></i>
+                <h3 class="text-muted">Your cart is empty</h3>
+                <button class="btn btn-primary mt-3" onclick="showPage('products-page')">Continue Shopping</button>
+            </div>
+        </div>
+
+        <!-- Orders Page -->
+        <div id="orders-page" class="page-content d-none">
+            <h2 class="mb-4"><i class="fa-solid fa-box me-2"></i>Your Orders</h2>
+            
+            <div class="text-center d-none my-5" id="orders-loading">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body">
+                            <!-- Orders -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="orders-empty" class="text-center py-5 d-none">
+                <h3 class="text-muted">No orders found</h3>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile-page" class="page-content d-none">
+            <h2 class="mb-4"><i class="fa-solid fa-user me-2"></i>My Profile</h2>
+            
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm text-center">
+                        <div class="card-body py-5">
+                            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <h4 id="profile-name" class="mb-1">Loading...</h4>
+                            <p class="text-muted mb-3" id="profile-role">Loading...</p>
+                            <p class="mb-1"><i class="fa-solid fa-envelope me-2 text-muted"></i> <span id="profile-email">...</span></p>
+                            <p class="mb-0"><i class="fa-solid fa-calendar me-2 text-muted"></i> Member since <span id="profile-date">...</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8 mb-4">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Edit Profile</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="profile-form" onsubmit="updateProfile(event)">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">First Name</label>
+                                        <input type="text" class="form-control" id="edit-firstname" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" id="edit-lastname" required>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="edit-phone" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Update Profile</button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Notifications</h5>
+                        </div>
+                        <div class="list-group list-group-flush" id="notifications-list">
+                            <!-- Notifications -->
+                            <div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Product Detail Modal -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalTitle">Product Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-5 mb-3 mb-md-0">
+                            <div class="product-img-placeholder rounded" id="productModalImg">
+                                <i class="fa-solid fa-image"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <span class="badge bg-secondary mb-2" id="productModalCategory">Category</span>
+                            <h3 id="productModalName">Product Name</h3>
+                            <h4 class="text-primary fw-bold mb-3" id="productModalPrice">₹0.00</h4>
+                            <p id="productModalDesc" class="text-muted">Description goes here.</p>
+                            
+                            <div class="mb-3">
+                                <strong>Stock: </strong> <span id="productModalStock">0</span> available
+                            </div>
+                            
+                            <div class="mb-4">
+                                <strong>Specifications:</strong>
+                                <ul id="productModalSpecs" class="mb-0 ps-3">
+                                </ul>
+                            </div>
+                            
+                            <div class="d-flex align-items-center">
+                                <div class="input-group me-3" style="width: 120px;">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="changeModalQty(-1)">-</button>
+                                    <input type="number" class="form-control text-center" id="productModalQty" value="1" min="1">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="changeModalQty(1)">+</button>
+                                </div>
+                                <button class="btn btn-primary flex-grow-1" id="productModalAddBtn" onclick="addToCartFromModal()">
+                                    <i class="fa-solid fa-cart-plus me-2"></i>Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal fade" id="checkoutModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Checkout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="checkout-form" onsubmit="placeOrder(event)">
+                        <div class="mb-3">
+                            <label class="form-label">Shipping Address</label>
+                            <textarea class="form-control" id="checkout-address" rows="3" required placeholder="Enter full address..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <select class="form-select" id="checkout-payment" required>
+                                <option value="CREDIT_CARD">Credit Card</option>
+                                <option value="DEBIT_CARD">Debit Card</option>
+                                <option value="NET_BANKING">Net Banking</option>
+                                <option value="UPI">UPI</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-info">
+                            <strong>Total Amount:</strong> <span id="checkout-total">₹0.00</span>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 py-2">Place Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Detail Modal -->
+    <div class="modal fade" id="orderModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Order Details <span id="orderModalId" class="text-muted fs-6 ms-2"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Status</h6>
+                            <div id="orderModalStatus" class="mb-3"></div>
+                            <h6>Date</h6>
+                            <p id="orderModalDate"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Shipping Address</h6>
+                            <p id="orderModalAddress" class="text-muted"></p>
+                            <h6>Payment Method</h6>
+                            <p id="orderModalPayment" class="text-muted"></p>
+                        </div>
+                    </div>
+                    
+                    <h6>Items</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderModalItems">
+                            </tbody>
+                            <tfoot class="table-group-divider">
+                                <tr>
+                                    <th colspan="3" class="text-end">Total:</th>
+                                    <th class="text-end text-primary" id="orderModalTotal"></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer" id="orderModalFooter">
+                    <!-- Action buttons injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Process Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="payment-form" onsubmit="processPayment(event)">
+                        <input type="hidden" id="payment-order-id">
+                        <div class="alert alert-warning mb-4">
+                            You are about to pay <strong><span id="payment-amount"></span></strong> for Order <strong id="payment-order-display"></strong>.
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Confirm Payment Method</label>
+                            <select class="form-select" id="payment-method-confirm" required>
+                                <option value="CREDIT_CARD">Credit Card</option>
+                                <option value="DEBIT_CARD">Debit Card</option>
+                                <option value="NET_BANKING">Net Banking</option>
+                                <option value="UPI">UPI</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            <span class="spinner-border spinner-border-sm d-none" id="payment-spinner"></span> Process Payment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container p-3"></div>
+
+    <!-- Bootstrap 5.3 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Application Logic -->
+    <script>
+        // === STATE & CONFIG ===
+        const API_BASE = 'http://localhost:8080';
+        let token = localStorage.getItem('ecommerce_token');
+        let currentUser = JSON.parse(localStorage.getItem('ecommerce_user') || 'null');
+        let cartState = { items: [], total: 0 };
+        let currentProductId = null;
+        
+        const categories = ['All', 'Electronics', 'Clothing', 'Books', 'Home & Kitchen', 'Sports'];
+        let currentCategory = 'All';
+
+        // Modals
+        let productModal, checkoutModal, orderModal, paymentModal;
+
+        // === INITIALIZATION ===
+        document.addEventListener('DOMContentLoaded', () => {
+            productModal = new bootstrap.Modal(document.getElementById('productModal'));
+            checkoutModal = new bootstrap.Modal(document.getElementById('checkoutModal'));
+            orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+            paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            
+            renderCategoryFilters();
+            checkAuthStatus();
+        });
+
+        // === UTILS ===
+        const formatPrice = (price) => '₹' + parseFloat(price).toFixed(2);
+        const formatDate = (dateStr) => new Date(dateStr).toLocaleString();
+        
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-white bg-${type} border-0 mb-2`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            container.appendChild(toastEl);
+            const bsToast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            bsToast.show();
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+
+        async function api(method, path, body = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            
+            try {
+                const res = await fetch(API_BASE + path, {
+                    method, headers,
+                    body: body ? JSON.stringify(body) : null
+                });
+                
+                if (res.status === 401) {
+                    logout(false);
+                    throw new Error('Session expired. Please login again.');
+                }
+                
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'Request failed');
+                return data;
+            } catch(e) {
+                showToast(e.message, 'danger');
+                throw e;
+            }
+        }
+
+        // === NAVIGATION & AUTH ===
+        function checkAuthStatus() {
+            if (token && currentUser) {
+                document.getElementById('nav-links').classList.remove('d-none');
+                document.getElementById('auth-nav-buttons').classList.add('d-none');
+                document.getElementById('user-nav-info').classList.remove('d-none');
+                document.getElementById('nav-user-name').textContent = `Hi, ${currentUser.firstName}`;
+                showPage('products-page');
+                fetchCartCount();
+            } else {
+                document.getElementById('nav-links').classList.add('d-none');
+                document.getElementById('auth-nav-buttons').classList.remove('d-none');
+                document.getElementById('user-nav-info').classList.add('d-none');
+                showPage('auth-page');
+            }
+        }
+
+        function showPage(pageId) {
+            if (!token && pageId !== 'auth-page') {
+                showPage('auth-page');
+                return;
+            }
+            
+            document.querySelectorAll('.page-content').forEach(p => p.classList.add('d-none'));
+            document.getElementById(pageId).classList.remove('d-none');
+            
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const navId = pageId.replace('-page', '');
+            const navEl = document.getElementById('nav-' + navId);
+            if(navEl) navEl.classList.add('active');
+
+            if (pageId === 'products-page') loadProducts();
+            if (pageId === 'cart-page') loadCart();
+            if (pageId === 'orders-page') loadOrders();
+            if (pageId === 'profile-page') loadProfile();
+        }
+
+        function showAuthTab(tab) {
+            const tabEl = document.querySelector(`#${tab}-tab`);
+            if(tabEl) new bootstrap.Tab(tabEl).show();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const spinner = document.getElementById('login-spinner');
+            
+            try {
+                btn.disabled = true; spinner.classList.remove('d-none');
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                const res = await api('POST', '/api/users/login', { email, password });
+                
+                token = res.data.token;
+                currentUser = res.data;
+                localStorage.setItem('ecommerce_token', token);
+                localStorage.setItem('ecommerce_user', JSON.stringify(currentUser));
+                
+                showToast('Login successful!');
+                checkAuthStatus();
+            } finally {
+                btn.disabled = false; spinner.classList.add('d-none');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const spinner = document.getElementById('reg-spinner');
+            
+            try {
+                btn.disabled = true; spinner.classList.remove('d-none');
+                const body = {
+                    firstName: document.getElementById('reg-firstname').value,
+                    lastName: document.getElementById('reg-lastname').value,
+                    phone: document.getElementById('reg-phone').value,
+                    email: document.getElementById('reg-email').value,
+                    password: document.getElementById('reg-password').value
+                };
+                
+                const res = await api('POST', '/api/users/register', body);
+                
+                token = res.data.token;
+                currentUser = res.data;
+                localStorage.setItem('ecommerce_token', token);
+                localStorage.setItem('ecommerce_user', JSON.stringify(currentUser));
+                
+                showToast('Registration successful!');
+                checkAuthStatus();
+            } finally {
+                btn.disabled = false; spinner.classList.add('d-none');
+            }
+        }
+
+        function logout(showMsg = true) {
+            token = null;
+            currentUser = null;
+            localStorage.removeItem('ecommerce_token');
+            localStorage.removeItem('ecommerce_user');
+            if(showMsg) showToast('Logged out successfully');
+            checkAuthStatus();
+        }
+
+        // === PRODUCTS PAGE ===
+        function renderCategoryFilters() {
+            const pillsContainer = document.getElementById('category-pills');
+            const dropContainer = document.getElementById('category-dropdown');
+            
+            pillsContainer.innerHTML = '';
+            dropContainer.innerHTML = '';
+            
+            categories.forEach(cat => {
+                // Desktop pills
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `btn btn-outline-primary ${cat === currentCategory ? 'active' : ''}`;
+                btn.textContent = cat;
+                btn.onclick = () => filterByCategory(cat);
+                pillsContainer.appendChild(btn);
+                
+                // Mobile dropdown
+                const li = document.createElement('li');
+                li.innerHTML = `<a class="dropdown-item ${cat === currentCategory ? 'active' : ''}" href="#" onclick="filterByCategory('${cat}')">${cat}</a>`;
+                dropContainer.appendChild(li);
+            });
+        }
+
+        function filterByCategory(cat) {
+            currentCategory = cat;
+            renderCategoryFilters();
+            document.getElementById('search-input').value = '';
+            loadProducts();
+        }
+
+        function handleSearch(e) {
+            e.preventDefault();
+            currentCategory = 'All';
+            renderCategoryFilters();
+            loadProducts(document.getElementById('search-input').value);
+        }
+
+        async function loadProducts(query = null) {
+            const grid = document.getElementById('products-grid');
+            const loader = document.getElementById('products-loading');
+            
+            grid.innerHTML = '';
+            loader.classList.remove('d-none');
+            
+            try {
+                let path = '/api/products?page=0&size=12';
+                if (query) path = `/api/products/search?keyword=${encodeURIComponent(query)}`;
+                else if (currentCategory !== 'All') path = `/api/products/category/${encodeURIComponent(currentCategory)}`;
+                
+                const res = await api('GET', path);
+                const products = res.data.content || res.data; // Handle both paginated and list responses
+                
+                loader.classList.add('d-none');
+                
+                if (products.length === 0) {
+                    grid.innerHTML = '<div class="col-12 text-center py-5"><h4 class="text-muted">No products found</h4></div>';
+                    return;
+                }
+                
+                products.forEach(p => {
+                    grid.innerHTML += `
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="card h-100 product-card shadow-sm" onclick="openProductDetail(${p.id})">
+                                ${p.imageUrl ? 
+                                    `<img src="${p.imageUrl}" class="card-img-top" style="height:200px; object-fit:cover;" alt="${p.name}">` : 
+                                    `<div class="product-img-placeholder card-img-top"><i class="fa-solid fa-box"></i></div>`
+                                }
+                                <div class="card-body d-flex flex-column">
+                                    <span class="badge bg-secondary mb-2 align-self-start">${p.category}</span>
+                                    <h5 class="card-title text-truncate" title="${p.name}">${p.name}</h5>
+                                    <h6 class="card-subtitle mb-2 text-primary fw-bold">${formatPrice(p.price)}</h6>
+                                    <p class="card-text text-muted small text-truncate">${p.description}</p>
+                                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                                        <small class="${p.stockQuantity > 0 ? 'text-success' : 'text-danger'}">${p.stockQuantity > 0 ? p.stockQuantity + ' in stock' : 'Out of stock'}</small>
+                                        <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); addToCart(${p.id}, 1)" ${p.stockQuantity <= 0 ? 'disabled' : ''}>
+                                            <i class="fa-solid fa-cart-plus"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                loader.classList.add('d-none');
+            }
+        }
+
+        async function openProductDetail(id) {
+            try {
+                const res = await api('GET', `/api/products/${id}`);
+                const p = res.data;
+                currentProductId = p.id;
+                
+                document.getElementById('productModalName').textContent = p.name;
+                document.getElementById('productModalCategory').textContent = p.category;
+                document.getElementById('productModalPrice').textContent = formatPrice(p.price);
+                document.getElementById('productModalDesc').textContent = p.description;
+                document.getElementById('productModalStock').textContent = p.stockQuantity;
+                document.getElementById('productModalQty').value = 1;
+                document.getElementById('productModalQty').max = p.stockQuantity;
+                
+                const btn = document.getElementById('productModalAddBtn');
+                if (p.stockQuantity <= 0) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-ban me-2"></i>Out of Stock';
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-cart-plus me-2"></i>Add to Cart';
+                }
+                
+                let specsHtml = '';
+                if (p.specifications) {
+                    try {
+                        const specs = typeof p.specifications === 'string' ? JSON.parse(p.specifications) : p.specifications;
+                        for (const [k, v] of Object.entries(specs)) {
+                            specsHtml += `<li><strong>${k}:</strong> ${v}</li>`;
+                        }
+                    } catch(e) {
+                        specsHtml = `<li>${p.specifications}</li>`;
+                    }
+                }
+                document.getElementById('productModalSpecs').innerHTML = specsHtml || '<li>None</li>';
+                
+                if(p.imageUrl) {
+                    document.getElementById('productModalImg').innerHTML = `<img src="${p.imageUrl}" class="img-fluid rounded" style="max-height:100%; width:100%; object-fit:cover;">`;
+                } else {
+                    document.getElementById('productModalImg').innerHTML = '<i class="fa-solid fa-image"></i>';
+                }
+                
+                productModal.show();
+            } catch(e) {}
+        }
+
+        function changeModalQty(delta) {
+            const input = document.getElementById('productModalQty');
+            let val = parseInt(input.value) + delta;
+            const max = parseInt(input.max);
+            if (val < 1) val = 1;
+            if (val > max) val = max;
+            input.value = val;
+        }
+
+        function addToCartFromModal() {
+            const qty = parseInt(document.getElementById('productModalQty').value);
+            addToCart(currentProductId, qty);
+            productModal.hide();
+        }
+
+        // === CART ===
+        async function fetchCartCount() {
+            try {
+                const res = await api('GET', '/api/cart');
+                const items = res.data?.items || [];
+                document.getElementById('cart-count').textContent = items.reduce((sum, item) => sum + item.quantity, 0);
+            } catch(e) {
+                document.getElementById('cart-count').textContent = '0';
+            }
+        }
+
+        async function addToCart(productId, quantity) {
+            try {
+                await api('POST', '/api/cart/items', { productId, quantity });
+                showToast('Added to cart!');
+                fetchCartCount();
+            } catch(e) {}
+        }
+
+        async function loadCart() {
+            const loader = document.getElementById('cart-loading');
+            const content = document.getElementById('cart-content');
+            const empty = document.getElementById('cart-empty');
+            const tbody = document.getElementById('cart-items-body');
+            
+            content.classList.add('d-none');
+            empty.classList.add('d-none');
+            loader.classList.remove('d-none');
+            
+            try {
+                const res = await api('GET', '/api/cart');
+                cartState = res.data;
+                
+                loader.classList.add('d-none');
+                
+                if (!cartState || !cartState.items || cartState.items.length === 0) {
+                    empty.classList.remove('d-none');
+                    document.getElementById('cart-count').textContent = '0';
+                    return;
+                }
+                
+                content.classList.remove('d-none');
+                document.getElementById('cart-total-price').textContent = formatPrice(cartState.totalPrice);
+                document.getElementById('cart-count').textContent = cartState.items.reduce((sum, item) => sum + item.quantity, 0);
+                
+                tbody.innerHTML = '';
+                cartState.items.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                        ${item.imageUrl ? `<img src="${item.imageUrl}" style="max-width:100%;max-height:100%;">` : '<i class="fa-solid fa-box text-muted"></i>'}
+                                    </div>
+                                    <span class="fw-medium">${item.productName}</span>
+                                </div>
+                            </td>
+                            <td>${formatPrice(item.price)}</td>
+                            <td>
+                                <div class="input-group input-group-sm mx-auto" style="width: 100px;">
+                                    <button class="btn btn-outline-secondary" onclick="updateCartItem(${item.productId}, ${item.quantity - 1})">-</button>
+                                    <input type="text" class="form-control text-center bg-white" value="${item.quantity}" readonly>
+                                    <button class="btn btn-outline-secondary" onclick="updateCartItem(${item.productId}, ${item.quantity + 1})">+</button>
+                                </div>
+                            </td>
+                            <td class="fw-medium">${formatPrice(item.subtotal)}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-danger" onclick="removeCartItem(${item.productId})"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) {
+                loader.classList.add('d-none');
+                empty.classList.remove('d-none');
+            }
+        }
+
+        async function updateCartItem(productId, quantity) {
+            if (quantity < 1) {
+                removeCartItem(productId);
+                return;
+            }
+            try {
+                await api('PUT', `/api/cart/items/${productId}`, { quantity });
+                loadCart();
+            } catch(e) {}
+        }
+
+        async function removeCartItem(productId) {
+            try {
+                await api('DELETE', `/api/cart/items/${productId}`);
+                showToast('Item removed');
+                loadCart();
+            } catch(e) {}
+        }
+
+        async function clearCart() {
+            if(!confirm('Are you sure you want to clear your cart?')) return;
+            try {
+                await api('DELETE', '/api/cart');
+                showToast('Cart cleared');
+                loadCart();
+            } catch(e) {}
+        }
+
+        // === CHECKOUT ===
+        function openCheckoutModal() {
+            document.getElementById('checkout-total').textContent = formatPrice(cartState.totalPrice);
+            checkoutModal.show();
+        }
+
+        async function placeOrder(e) {
+            e.preventDefault();
+            try {
+                const body = {
+                    items: cartState.items.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity })),
+                    shippingAddress: document.getElementById('checkout-address').value,
+                    paymentMethod: document.getElementById('checkout-payment').value
+                };
+                
+                const res = await api('POST', '/api/orders', body);
+                
+                checkoutModal.hide();
+                showToast('Order placed successfully!');
+                await api('DELETE', '/api/cart'); // clear cart after order
+                fetchCartCount();
+                
+                // Show order details and option to pay if PLACED
+                showPage('orders-page');
+            } catch(e) {}
+        }
+
+        // === ORDERS ===
+        function getStatusBadge(status) {
+            const badges = {
+                'PLACED': 'bg-warning text-dark',
+                'CONFIRMED': 'bg-info text-dark',
+                'SHIPPED': 'bg-primary',
+                'DELIVERED': 'bg-success',
+                'CANCELLED': 'bg-danger'
+            };
+            return `<span class="badge ${badges[status] || 'bg-secondary'}">${status}</span>`;
+        }
+
+        async function loadOrders() {
+            const tbody = document.getElementById('orders-table-body');
+            const loader = document.getElementById('orders-loading');
+            const empty = document.getElementById('orders-empty');
+            
+            tbody.innerHTML = '';
+            loader.classList.remove('d-none');
+            empty.classList.add('d-none');
+            document.querySelector('#orders-page .card').classList.add('d-none');
+            
+            try {
+                const res = await api('GET', '/api/orders');
+                const orders = res.data;
+                
+                loader.classList.add('d-none');
+                
+                if (!orders || orders.length === 0) {
+                    empty.classList.remove('d-none');
+                    return;
+                }
+                
+                document.querySelector('#orders-page .card').classList.remove('d-none');
+                
+                orders.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(o => {
+                    const itemCount = o.items ? o.items.reduce((s,i)=>s+i.quantity,0) : 0;
+                    
+                    let actions = `<button class="btn btn-sm btn-outline-primary me-1" onclick="viewOrder(${o.id})"><i class="fa-solid fa-eye"></i> View</button>`;
+                    if (o.status === 'PLACED') {
+                        actions += `<button class="btn btn-sm btn-success" onclick="openPaymentModal(${o.id}, ${o.totalAmount}, '${o.paymentMethod}')"><i class="fa-solid fa-credit-card"></i> Pay</button>`;
+                    } else if (o.status !== 'CANCELLED') {
+                        actions += `<button class="btn btn-sm btn-outline-info" onclick="trackOrder(${o.id})"><i class="fa-solid fa-location-dot"></i> Track</button>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="fw-bold">#${o.id}</td>
+                            <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+                            <td>${itemCount}</td>
+                            <td class="fw-medium">${formatPrice(o.totalAmount)}</td>
+                            <td>${getStatusBadge(o.status)}</td>
+                            <td class="text-end">${actions}</td>
+                        </tr>
+                    `;
+                });
+            } catch(e) {
+                loader.classList.add('d-none');
+                empty.classList.remove('d-none');
+            }
+        }
+
+        async function viewOrder(id) {
+            try {
+                const res = await api('GET', `/api/orders/${id}`);
+                const o = res.data;
+                
+                document.getElementById('orderModalId').textContent = `#${o.id}`;
+                document.getElementById('orderModalStatus').innerHTML = getStatusBadge(o.status);
+                document.getElementById('orderModalDate').textContent = formatDate(o.createdAt);
+                document.getElementById('orderModalAddress').textContent = o.shippingAddress;
+                document.getElementById('orderModalPayment').textContent = o.paymentMethod;
+                
+                const itemsBody = document.getElementById('orderModalItems');
+                itemsBody.innerHTML = '';
+                o.items.forEach(item => {
+                    itemsBody.innerHTML += `
+                        <tr>
+                            <td>${item.productName}</td>
+                            <td>${formatPrice(item.price)}</td>
+                            <td>${item.quantity}</td>
+                            <td class="text-end">${formatPrice(item.price * item.quantity)}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('orderModalTotal').textContent = formatPrice(o.totalAmount);
+                
+                const footer = document.getElementById('orderModalFooter');
+                if (o.status === 'PLACED') {
+                    footer.innerHTML = `
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-success" onclick="orderModal.hide(); openPaymentModal(${o.id}, ${o.totalAmount}, '${o.paymentMethod}')"><i class="fa-solid fa-credit-card me-2"></i>Pay Now</button>
+                    `;
+                } else {
+                    footer.innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
+                }
+                
+                orderModal.show();
+            } catch(e) {}
+        }
+
+        async function trackOrder(id) {
+            try {
+                const res = await api('GET', `/api/orders/${id}/track`);
+                showToast(`Order #${id} is currently: ${res.data.status}`, 'info');
+            } catch(e) {}
+        }
+
+        // === PAYMENT ===
+        function openPaymentModal(orderId, amount, method) {
+            document.getElementById('payment-order-id').value = orderId;
+            document.getElementById('payment-order-display').textContent = `#${orderId}`;
+            document.getElementById('payment-amount').textContent = formatPrice(amount);
+            document.getElementById('payment-method-confirm').value = method;
+            paymentModal.show();
+        }
+
+        async function processPayment(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const spinner = document.getElementById('payment-spinner');
+            
+            try {
+                btn.disabled = true; spinner.classList.remove('d-none');
+                
+                const body = {
+                    orderId: document.getElementById('payment-order-id').value,
+                    userId: currentUser.id || 0, // Fallback if id not in currentUser payload initially
+                    amount: parseFloat(document.getElementById('payment-amount').textContent.replace('₹','')),
+                    paymentMethod: document.getElementById('payment-method-confirm').value
+                };
+                
+                await api('POST', '/api/payments/process', body);
+                
+                showToast('Payment processed successfully!');
+                paymentModal.hide();
+                loadOrders(); // Refresh orders
+            } catch(e) {
+                // Payment failure toast handled by api()
+            } finally {
+                btn.disabled = false; spinner.classList.add('d-none');
+            }
+        }
+
+        // === PROFILE ===
+        async function loadProfile() {
+            try {
+                const res = await api('GET', '/api/users/profile');
+                const p = res.data;
+                
+                // Update header info
+                document.getElementById('profile-name').textContent = `${p.firstName} ${p.lastName}`;
+                document.getElementById('profile-role').innerHTML = `<span class="badge bg-secondary">${p.role}</span>`;
+                document.getElementById('profile-email').textContent = p.email;
+                document.getElementById('profile-date').textContent = new Date(p.createdAt).toLocaleDateString();
+                
+                // Update form
+                document.getElementById('edit-firstname').value = p.firstName;
+                document.getElementById('edit-lastname').value = p.lastName;
+                document.getElementById('edit-phone').value = p.phone || '';
+                
+                // Load notifications
+                loadNotifications(p.id);
+            } catch(e) {}
+        }
+
+        async function updateProfile(e) {
+            e.preventDefault();
+            try {
+                const body = {
+                    firstName: document.getElementById('edit-firstname').value,
+                    lastName: document.getElementById('edit-lastname').value,
+                    phone: document.getElementById('edit-phone').value
+                };
+                
+                const res = await api('PUT', '/api/users/profile', body);
+                showToast('Profile updated successfully!');
+                
+                // Update current user info in local storage
+                currentUser.firstName = body.firstName;
+                currentUser.lastName = body.lastName;
+                localStorage.setItem('ecommerce_user', JSON.stringify(currentUser));
+                document.getElementById('nav-user-name').textContent = `Hi, ${currentUser.firstName}`;
+                
+                loadProfile(); // Refresh
+            } catch(e) {}
+        }
+
+        async function loadNotifications(userId) {
+            const list = document.getElementById('notifications-list');
+            try {
+                const res = await api('GET', `/api/notifications/user/${userId}`);
+                const notifs = res.data;
+                
+                list.innerHTML = '';
+                if (!notifs || notifs.length === 0) {
+                    list.innerHTML = '<div class="list-group-item text-muted text-center py-4">No notifications yet</div>';
+                    return;
+                }
+                
+                notifs.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(n => {
+                    const iconMap = {
+                        'ORDER_CREATED': 'fa-box text-primary',
+                        'PAYMENT_SUCCESS': 'fa-check-circle text-success',
+                        'PAYMENT_FAILED': 'fa-times-circle text-danger',
+                        'WELCOME': 'fa-hand-sparkles text-warning'
+                    };
+                    const iconClass = iconMap[n.type] || 'fa-bell text-secondary';
+                    const isUnread = n.status === 'UNREAD';
+                    
+                    list.innerHTML += `
+                        <div class="list-group-item list-group-item-action ${isUnread ? 'bg-light' : ''}">
+                            <div class="d-flex w-100 justify-content-between mb-1">
+                                <h6 class="mb-1 ${isUnread ? 'fw-bold' : ''}"><i class="fa-solid ${iconClass} me-2"></i>${n.subject}</h6>
+                                <small class="text-muted">${new Date(n.createdAt).toLocaleDateString()}</small>
+                            </div>
+                            <p class="mb-1 text-muted small">${n.message}</p>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                list.innerHTML = '<div class="list-group-item text-danger text-center">Failed to load notifications</div>';
+            }
+        }
+
+    </script>
+</body>
+</html>
