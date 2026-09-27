@@ -46,13 +46,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             try {
                 Claims claims = jwtService.validateToken(token);
                 
-                String userId = claims.get("userId", String.class);
-                if (userId == null) {
-                    Integer id = claims.get("userId", Integer.class);
-                    if (id != null) {
-                        userId = String.valueOf(id);
-                    }
-                }
+                Object userIdObj = claims.get("userId");
+                String userId = userIdObj != null ? userIdObj.toString() : "";
                 String email = claims.getSubject();
                 String role = claims.get("role", String.class);
 
