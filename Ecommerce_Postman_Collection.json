@@ -1,0 +1,387 @@
+{
+  "info": {
+    "name": "Ecommerce Microservices Platform",
+    "description": "Complete Postman collection for testing the Ecommerce Microservices Platform.\n\nFlow: Register → Login → Browse Products → Add to Cart → Place Order → Process Payment → Track Order",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "gateway_url", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "product_id", "value": "" },
+    { "key": "order_id", "value": "" },
+    { "key": "payment_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. User Management",
+      "item": [
+        {
+          "name": "1.1 Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    console.log('Token saved from registration');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/users/register" }
+          }
+        },
+        {
+          "name": "1.2 Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    console.log('Token saved: ' + jsonData.data.token.substring(0, 20) + '...');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/users/login" }
+          }
+        },
+        {
+          "name": "1.3 Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/users/profile" }
+          }
+        },
+        {
+          "name": "1.4 Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Smith\",\n  \"phone\": \"9998887776\"\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/users/profile" }
+          }
+        },
+        {
+          "name": "1.5 Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"newPassword\": \"newpassword456\"\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/users/reset-password" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Product Catalog",
+      "item": [
+        {
+          "name": "2.1 List All Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.content && jsonData.data.content.length > 0) {",
+                  "    pm.collectionVariables.set('product_id', jsonData.data.content[0].id);",
+                  "    console.log('First product ID saved: ' + jsonData.data.content[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{gateway_url}}/api/products?page=0&size=10" }
+          }
+        },
+        {
+          "name": "2.2 Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{gateway_url}}/api/products/{{product_id}}" }
+          }
+        },
+        {
+          "name": "2.3 Search Products",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{gateway_url}}/api/products/search?keyword=laptop" }
+          }
+        },
+        {
+          "name": "2.4 Browse by Category",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{gateway_url}}/api/products/category/Electronics" }
+          }
+        },
+        {
+          "name": "2.5 Create Product (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gaming Mouse\",\n  \"description\": \"High-precision RGB gaming mouse with 16000 DPI sensor\",\n  \"price\": 2499.00,\n  \"stockQuantity\": 100,\n  \"category\": \"Electronics\",\n  \"imageUrl\": \"https://example.com/images/gaming-mouse.jpg\",\n  \"specifications\": \"DPI: 16000, Buttons: 7, Weight: 85g, RGB: Yes\"\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/products" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Shopping Cart",
+      "item": [
+        {
+          "name": "3.1 Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{product_id}},\n  \"quantity\": 2\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/cart/items" }
+          }
+        },
+        {
+          "name": "3.2 View Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/cart" }
+          }
+        },
+        {
+          "name": "3.3 Update Item Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/cart/items/{{product_id}}" }
+          }
+        },
+        {
+          "name": "3.4 Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/cart/items/{{product_id}}" }
+          }
+        },
+        {
+          "name": "3.5 Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/cart" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Orders",
+      "item": [
+        {
+          "name": "4.1 Place Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('order_id', jsonData.data.id);",
+                  "    console.log('Order ID saved: ' + jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"productName\": \"Laptop Pro 15\",\n      \"price\": 74999.00,\n      \"quantity\": 1\n    },\n    {\n      \"productId\": 2,\n      \"productName\": \"Wireless Headphones\",\n      \"price\": 2999.00,\n      \"quantity\": 2\n    }\n  ],\n  \"shippingAddress\": \"123 MG Road, Bangalore, Karnataka 560001\",\n  \"paymentMethod\": \"CREDIT_CARD\"\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/orders" }
+          }
+        },
+        {
+          "name": "4.2 View Order History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/orders" }
+          }
+        },
+        {
+          "name": "4.3 Get Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/orders/{{order_id}}" }
+          }
+        },
+        {
+          "name": "4.4 Track Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/orders/{{order_id}}/track" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Payments",
+      "item": [
+        {
+          "name": "5.1 Process Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('payment_id', jsonData.data.id);",
+                  "    console.log('Payment ID saved: ' + jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": {{order_id}},\n  \"userId\": {{user_id}},\n  \"amount\": 80997.00,\n  \"paymentMethod\": \"CREDIT_CARD\"\n}"
+            },
+            "url": { "raw": "{{gateway_url}}/api/payments/process" }
+          }
+        },
+        {
+          "name": "5.2 Get Payment Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/payments/{{payment_id}}" }
+          }
+        },
+        {
+          "name": "5.3 Get Payment Receipt",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/payments/{{payment_id}}/receipt" }
+          }
+        },
+        {
+          "name": "5.4 Get Payment by Order ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/payments/order/{{order_id}}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Notifications",
+      "item": [
+        {
+          "name": "6.1 View User Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{gateway_url}}/api/notifications/user/{{user_id}}" }
+          }
+        }
+      ]
+    }
+  ]
+}
